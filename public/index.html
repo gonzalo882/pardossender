@@ -1,1 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WA Sender — Pardos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #080b08; --surface: #0e120e; --border: #1a1f1a; --border-bright: #243024;
+    --green: #22c55e; --green-dim: #16a34a; --green-glow: rgba(34,197,94,0.12);
+    --text: #d4e8d4; --muted: #4a5e4a; --error: #ef4444; --warn: #f59e0b;
+    --font-d: 'Syne', sans-serif; --font-m: 'IBM Plex Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-d); min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(34,197,94,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(34,197,94,0.025) 1px, transparent 1px);
+    background-size: 48px 48px; pointer-events: none; z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 52px 24px 100px; }
+
+  .eyebrow { font-family: var(--font-m); font-size: 10px; letter-spacing: 0.2em; color: var(--green); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .eyebrow::before { content: ''; display: inline-block; width: 24px; height: 1px; background: var(--green); }
+  h1 { font-size: clamp(32px,5vw,52px); font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: #fff; margin-bottom: 10px; }
+  h1 span { color: var(--green); }
+  .subtitle { font-family: var(--font-m); font-size: 12px; color: var(--muted); line-height: 1.8; margin-bottom: 40px; }
+
+  .steps-nav { display: flex; margin-bottom: 32px; }
+  .step-pill { font-family: var(--font-m); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 18px; border: 1px solid var(--border); color: var(--muted); background: var(--surface); }
+  .step-pill:first-child { border-radius: 6px 0 0 6px; }
+  .step-pill:last-child  { border-radius: 0 6px 6px 0; }
+  .step-pill.active { background: var(--green); color: #000; border-color: var(--green); font-weight: 600; }
+  .step-pill.done   { background: #0a1f0a; color: var(--green); border-color: #165516; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px 32px; margin-bottom: 16px; animation: fadeUp 0.35s ease both; }
+  .card-label { font-family: var(--font-m); font-size: 10px; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .card-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .alert { border-radius: 8px; padding: 13px 16px; font-family: var(--font-m); font-size: 12px; line-height: 1.7; margin-bottom: 16px; }
+  .alert-warn { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); color: #d4a017; }
+  .alert-warn strong, .alert-warn a { color: var(--warn); }
+  .alert-info { background: rgba(34,197,94,0.05); border: 1px solid rgba(34,197,94,0.15); color: #5a8a5a; }
+
+  .fields { display: grid; gap: 14px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  @media(max-width:600px){ .g2,.g4 { grid-template-columns: 1fr 1fr; } }
+
+  .field label { display: block; font-family: var(--font-m); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; }
+  .field input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text); font-family: var(--font-m); font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+  .field input:focus { border-color: var(--green-dim); box-shadow: 0 0 0 3px var(--green-glow); }
+  .field-hint { font-family: var(--font-m); font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+  .dropzone { border: 1.5px dashed var(--border-bright); border-radius: 12px; padding: 44px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg); position: relative; overflow: hidden; }
+  .dropzone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 100%, var(--green-glow) 0%, transparent 70%); opacity: 0; transition: opacity 0.3s; }
+  .dropzone:hover::before, .dropzone.over::before { opacity: 1; }
+  .dropzone:hover, .dropzone.over { border-color: var(--green-dim); }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .dz-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+  .dz-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .dz-sub { font-family: var(--font-m); font-size: 11px; color: var(--muted); line-height: 1.8; }
+
+  .tbl-scroll { overflow-x: auto; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { font-family: var(--font-m); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 0 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid #0d100d; color: #b0c8b0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(34,197,94,0.02); }
+  .td-m { font-family: var(--font-m); font-size: 12px; }
+  .td-n { font-family: var(--font-m); font-size: 10px; color: var(--muted); }
+  .clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-m); font-size: 11px; color: var(--muted); max-width: 200px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-m); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+  .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .b-pending { background: transparent; border: 1px solid #1e251e; color: #3a4a3a; }
+  .b-sending { background: #0d1830; border: 1px solid #1a3060; color: #5b9eff; }
+  .b-sent    { background: #0a1f0a; border: 1px solid #165516; color: var(--green); }
+  .b-error   { background: #1f0a0a; border: 1px solid #551616; color: var(--error); }
+  .b-skip    { background: #1a1200; border: 1px solid #2a2000; color: var(--warn); }
+  .b-sending .badge-dot { animation: pulse 1s infinite; }
+
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 18px; }
+  @media(max-width:480px){ .stats { grid-template-columns: repeat(2,1fr); } }
+  .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .stat-v { font-size: 26px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 4px; }
+  .stat-l { font-family: var(--font-m); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .s-sent .stat-v { color: var(--green); }
+  .s-err  .stat-v { color: var(--error); }
+
+  .prog-wrap { background: var(--bg); border-radius: 3px; height: 3px; overflow: hidden; margin: 0 0 6px; }
+  .prog-fill { height: 100%; background: linear-gradient(90deg, var(--green-dim), var(--green)); border-radius: 3px; transition: width 0.4s ease; box-shadow: 0 0 8px var(--green); }
+  .prog-meta { display: flex; justify-content: space-between; font-family: var(--font-m); font-size: 10px; color: var(--muted); margin-bottom: 16px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 8px; font-family: var(--font-d); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; letter-spacing: -0.01em; }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-primary { background: var(--green); color: #000; }
+  .btn-primary:hover:not(:disabled) { background: #4ade80; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(34,197,94,0.3); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border-bright); }
+  .btn-ghost:hover { color: var(--text); border-color: #3a4a3a; }
+  .btn-stop { background: rgba(239,68,68,0.1); color: var(--error); border: 1px solid rgba(239,68,68,0.2); }
+  .btn-stop:hover { background: rgba(239,68,68,0.18); }
+
+  .hidden { display: none !important; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* EDITABLE TABLE */
+  .norm-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .norm-toolbar .sel-count { font-family:var(--font-m); font-size:11px; color:var(--muted); margin-left:auto; }
+  .tbl-edit td { vertical-align:top; padding:6px 8px; }
+  .tbl-edit input[type=text], .tbl-edit textarea {
+    background: var(--bg); border: 1px solid var(--border); border-radius:6px;
+    color: var(--text); font-family:var(--font-m); font-size:12px; padding:6px 9px;
+    outline:none; width:100%; transition: border-color 0.15s, box-shadow 0.15s;
+    resize: vertical;
+  }
+  .tbl-edit input[type=text]:focus, .tbl-edit textarea:focus {
+    border-color: var(--green-dim); box-shadow: 0 0 0 2px var(--green-glow);
+  }
+  .tbl-edit textarea { min-height:72px; line-height:1.5; }
+  .tbl-edit input[type=checkbox] { width:16px; height:16px; accent-color:var(--green); cursor:pointer; margin-top:4px; }
+  .tbl-edit tr.deselected td { opacity:0.35; }
+  .tbl-edit tr.deselected input[type=checkbox] { opacity:1; }
+  .col-check { width:32px; text-align:center; }
+  .col-id    { width:36px; }
+  .col-nome  { width:110px; }
+  .col-tel   { width:140px; }
+  .col-msg1  { width:200px; }
+  .col-msg2  { min-width:240px; }
+
+  /* PAUSE STATE */
+  .btn-pause  { background: rgba(245,158,11,0.1); color: var(--warn); border: 1px solid rgba(245,158,11,0.25); }
+  .btn-pause:hover { background: rgba(245,158,11,0.18); }
+  .btn-resume { background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .btn-resume:hover { background: rgba(34,197,94,0.2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div style="margin-bottom:48px">
+    <div class="eyebrow">Pardos · ProEX Tooling</div>
+    <h1>WA <span>Sender</span></h1>
+    <div class="subtitle">Carrega → Normaliza → Revê → Envia · Duas mensagens por contacto · Variações automáticas</div>
+  </div>
+
+  <div class="steps-nav">
+    <div class="step-pill active" id="pill-1">1 · Config</div>
+    <div class="step-pill" id="pill-2">2 · Ficheiro</div>
+    <div class="step-pill" id="pill-3">3 · Normalizar</div>
+    <div class="step-pill" id="pill-4">4 · Enviar</div>
+  </div>
+
+  <div class="alert alert-warn">
+    <strong>⚠ CORS:</strong> Ativa a extensão no browser —
+    <a href="https://chrome.google.com/webstore/detail/cors-unblock/lfhmikememgdcahcdlaciloancbhjino" target="_blank">CORS Unblock (Chrome)</a> ·
+    <a href="https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/" target="_blank">CORS Everywhere (Firefox)</a>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card" id="card-config">
+    <div class="card-label">01 — Configuração</div>
+    <div class="fields g2" style="margin-bottom:14px">
+      <div class="field">
+        <label>API da instância Z-API</label>
+        <input id="apiUrl" value="https://api.z-api.io/instances/3F04169F1FE2F1B81433CA56A23EDD6B/token/39D704B91C50F5332571DDC5">
+        <div class="field-hint">↳ campo "API da instância" no painel Z-API</div>
+      </div>
+      <div class="field">
+        <label>Client Token Z-API</label>
+        <input id="clientToken" type="password" value="Fab048771bc95485ea75b1c975ca1c908S">
+        <div class="field-hint">↳ Conta Z-API → Segurança (≠ token da instância)</div>
+      </div>
+    </div>
+    <div class="fields g2" style="margin-bottom:18px">
+      <div class="field">
+        <label>Claude API Key (normalização de nomes)</label>
+        <input id="claudeKey" type="password" placeholder="sk-ant-...">
+        <div class="field-hint">↳ console.anthropic.com → API Keys · opcional mas recomendado</div>
+      </div>
+    </div>
+    <div style="font-family:var(--font-m);font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Delays (segundos)</div>
+    <div class="fields g4">
+      <div class="field"><label>Msg1→Msg2 · mín</label><input id="d1Min" type="number" value="25" min="5" max="120"></div>
+      <div class="field"><label>Msg1→Msg2 · máx</label><input id="d1Max" type="number" value="45" min="5" max="120"></div>
+      <div class="field"><label>Entre contactos · mín</label><input id="d2Min" type="number" value="10" min="5" max="120"></div>
+      <div class="field"><label>Entre contactos · máx</label><input id="d2Max" type="number" value="18" min="5" max="120"></div>
+    </div>
+    <div class="field-hint" style="margin-top:8px">↳ delay longo entre as duas msgs simula escrita humana (~100 palavras na msg 2)</div>
+    <div class="actions"><button class="btn btn-primary" onclick="goToUpload()">Continuar →</button></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card hidden" id="card-upload">
+    <div class="card-label">02 — Ficheiro de Contactos</div>
+    <div class="alert alert-info">
+      Colunas esperadas: <strong style="color:var(--green)">First Name · Last Name · Email · Default Address Phone · Phone</strong><br>
+      A app normaliza automaticamente nomes (primeiro nome) e números (formato +351...).
+    </div>
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      <span class="dz-icon">📋</span>
+      <div class="dz-title">Clica ou arrasta o ficheiro</div>
+      <div class="dz-sub">.XLSX · .XLS · .CSV</div>
+    </label>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card hidden" id="card-normalize">
+    <div class="card-label" id="norm-label">03 — Rever e Selecionar</div>
+    <div id="norm-status" class="alert alert-info hidden"></div>
+    <div class="norm-toolbar" id="norm-toolbar" style="display:none">
+      <button class="btn btn-ghost" style="padding:8px 14px;font-size:12px" onclick="selectAll()">☑ Selecionar todos</button>
+      <button class="btn btn-ghost" style="padding:8px 14px;font-size:12px" onclick="deselectAll()">☐ Desselecionar todos</button>
+      <span class="sel-count" id="sel-count"></span>
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl-edit">
+        <thead>
+          <tr>
+            <th class="col-check"><input type="checkbox" id="chk-all" onchange="toggleAll(this.checked)" title="Selecionar todos"></th>
+            <th class="col-id">#</th>
+            <th class="col-nome">Nome</th>
+            <th class="col-tel">Número</th>
+            <th class="col-msg1">Mensagem 1</th>
+            <th class="col-msg2">Mensagem 2</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="norm-tbody"></tbody>
+      </table>
+    </div>
+    <div class="actions" id="norm-actions"></div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card hidden" id="card-send">
+    <div class="card-label" id="send-label">04 — Envio</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-v" id="s-total">0</div><div class="stat-l">Total</div></div>
+      <div class="stat s-sent"><div class="stat-v" id="s-sent">0</div><div class="stat-l">Enviados</div></div>
+      <div class="stat s-err"><div class="stat-v" id="s-err">0</div><div class="stat-l">Erros</div></div>
+      <div class="stat"><div class="stat-v" id="s-pend">0</div><div class="stat-l">Pendentes</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-meta"><span id="prog-pct">0%</span><span id="prog-status" style="color:var(--green)">● pronto para enviar</span></div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Nome</th><th>Número</th><th>Estado</th></tr></thead>
+        <tbody id="send-tbody"></tbody>
+      </table>
+    </div>
+    <div class="actions" id="send-actions"></div>
+  </div>
+
+</div>
+<script>
+// ── Password Gate ─────────────────────────────────────────────────
+(function() {
+  const PASS = 'pardos2025';
+  const key  = 'wa_auth';
+  if (sessionStorage.getItem(key) !== '1') {
+    const input = prompt('🔒 Palavra-passe:');
+    if (input !== PASS) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;color:#ef4444;background:#080b08;font-size:14px">Acesso negado.</div>';
+      throw new Error('unauthorized');
+    }
+    sessionStorage.setItem(key, '1');
+  }
+})();
+
+// ── State ──────────────────────────────────────────────────────────
+let rawRows = [], contacts = [], stopFlag = false;
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand  = (a,b) => (a + Math.random() * (b - a)) * 1000;
+
+// ── Step Nav ───────────────────────────────────────────────────────
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const p = $('pill-'+i);
+    p.className = 'step-pill' + (i===n?' active':i<n?' done':'');
+  });
+}
+
+function goToUpload() {
+  if (!$('apiUrl').value.trim() || !$('clientToken').value.trim()) {
+    alert('Preenche a URL da API e o Client Token Z-API.'); return;
+  }
+  $('card-upload').classList.remove('hidden');
+  setStep(2);
+  $('card-upload').scrollIntoView({ behavior:'smooth' });
+}
+
+// ── File Parsing ───────────────────────────────────────────────────
+function findCol(keys, patterns) {
+  return keys.find(k => patterns.some(p => k.toLowerCase().replace(/[\s_\-]/g,'').includes(p))) || null;
+}
+
+function parseFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const isCSV = file.name.toLowerCase().endsWith('.csv');
+      const wb = XLSX.read(isCSV ? e.target.result : new Uint8Array(e.target.result), { type: isCSV ? 'string' : 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      if (!rows.length) { alert('Ficheiro vazio.'); return; }
+
+      const keys = Object.keys(rows[0]);
+      const cols = {
+        firstName: findCol(keys, ['firstname','first']),
+        lastName:  findCol(keys, ['lastname','last']),
+        email:     findCol(keys, ['email','mail']),
+        phone1:    findCol(keys, ['defaultaddressphone','defaultphone']),
+        phone2:    findCol(keys, ['phone','telefone','tel','mobile','celular']),
+      };
+
+      rawRows = rows.map((r, i) => ({
+        id: i+1,
+        firstName: String(cols.firstName ? r[cols.firstName] || '' : '').trim(),
+        lastName:  String(cols.lastName  ? r[cols.lastName]  || '' : '').trim(),
+        email:     String(cols.email     ? r[cols.email]     || '' : '').trim(),
+        phone1:    String(cols.phone1    ? r[cols.phone1]    || '' : '').trim(),
+        phone2:    String(cols.phone2    ? r[cols.phone2]    || '' : '').trim(),
+      }));
+
+      startNormalize();
+    } catch(err) { alert('Erro ao ler ficheiro: ' + err.message); }
+  };
+  file.name.toLowerCase().endsWith('.csv') ? reader.readAsText(file) : reader.readAsArrayBuffer(file);
+}
+
+// ── Phone ──────────────────────────────────────────────────────────
+function normalizePhone(raw) {
+  if (!raw) return null;
+  let p = String(raw).replace(/[\s\-\(\)\+\.]/g, '');
+  if (p.startsWith('00')) p = p.substring(2);
+  if (p.startsWith('351') && p.length === 12) return '+' + p;
+  if (p.length === 9 && /^[239]/.test(p)) return '+351' + p;
+  if (p.startsWith('351') && p.length >= 11) return '+' + p.substring(0,12);
+  return null;
+}
+
+function getBestPhone(row) {
+  return normalizePhone(row.phone1) || normalizePhone(row.phone2) || null;
+}
+
+// ── Name (local) ───────────────────────────────────────────────────
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; }
+
+function nameFromEmail(email) {
+  if (!email) return null;
+  const local = email.split('@')[0].replace(/[0-9_\-\.]+/g,' ').trim();
+  const parts = local.split(/\s+/).filter(Boolean);
+  if (!parts.length) return null;
+  const n = capitalize(parts[0]);
+  return n.length >= 3 ? n : null;
+}
+
+function getNameLocal(row) {
+  if (row.firstName) return capitalize(row.firstName.split(/\s+/)[0]);
+  if (row.lastName)  return capitalize(row.lastName.split(/\s+/)[0]);
+  return nameFromEmail(row.email);
+}
+
+// ── Name (Claude API) ──────────────────────────────────────────────
+async function inferNameClaude(row, key) {
+  const hints = [
+    row.firstName && `First Name: "${row.firstName}"`,
+    row.lastName  && `Last Name: "${row.lastName}"`,
+    row.email     && `Email: "${row.email}"`,
+  ].filter(Boolean).join('\n');
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version':'2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001', max_tokens: 20,
+      messages: [{ role:'user', content:`From this contact info, extract only the person's first name (capitalized). Return ONLY the first name. If impossible, return "Cliente".\n\n${hints}` }]
+    })
+  });
+  const data = await resp.json();
+  return (data.content?.[0]?.text?.trim() || 'Cliente').split(/\s+/)[0];
+}
+
+// ── Messages ───────────────────────────────────────────────────────
+const MSG1 = [
+  n => `Olá ${n}! Daqui, Gonçalo dos vinhos Pardos 🍷 Aproxima-se a Páscoa e lembrei-me de si.`,
+  n => `Olá ${n}! Daqui, Gonçalo dos Pardos 🍷 A Páscoa está a chegar e lembrei-me de si.`,
+  n => `Olá ${n}! Gonçalo dos vinhos Pardos por aqui 🍷 Vem aí a Páscoa e temos novidades.`,
+  n => `Olá ${n}! Daqui, Gonçalo dos Pardos 🍷 Com a Páscoa à porta, lembrei-me de si. Temos novidades.`,
+  n => `Olá ${n}! É o Gonçalo, dos vinhos Pardos 🍷 Vem aí a Páscoa, temos novidades.`,
+];
+const MSG2 = [
+  `Apenas para o informar que voltaram dois vinhos que estavam esgotados há meses:\n\n- Verde Tinto — esgotado desde Agosto → 49,90€ caixa de 6\n- Touro Lacre Azul (Branco) — esgotado desde Outubro → 49,90€ caixa de 6\n\nPardos Branco e Toninho Branco continuam a 49,90€ a caixa de 12, preço exclusivo clientes.\n\n2 ou mais caixas: 20% de desconto na segunda em diante + 3 garrafas de oferta.\n\nFaz sentido adquirir algum para a Páscoa, antes de esgotar?`,
+  `Lembrei-me de si porque temos novidade mesmo a tempo da Páscoa.\n\nO Verde Tinto voltou. Estava esgotado desde Agosto. O Touro Lacre Azul (Branco) também — fora desde Outubro. Ambos a 49,90€ a caixa de 6.\n\nPardos Branco e Toninho Branco continuam disponíveis a 49,90€ a caixa de 12, só para clientes.\n\nA partir da 2ª caixa: 20% desconto + 3 garrafas por nossa conta 🎁\n\nTem interesse em adquirir algum agora para a Páscoa e antes que esgote?`,
+  `Só um aviso rápido — dois vinhos que estavam esgotados há bastante tempo chegaram mesmo a tempo da Páscoa:\n\n→ Pardos Verde Tinto (fora desde Agosto) · 49,90€ · caixa de 6\n→ Touro Lacre Azul Branco (fora desde Outubro) · 49,90€ · caixa de 6\n\nComo cliente continua também com direito a Pardos Branco e Toninho Branco a 49,90€ a caixa de 12.\n\n2+ caixas: 20% na segunda em diante + 3 garrafas de oferta.\n\nTem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
+  `Temos dois vinhos de volta que muita gente estava à espera: o Pardos Verde Tinto (esgotado desde Agosto) e o Touro Lacre Azul- Branco (esgotado desde Outubro). Ambos a 49,90€ a caixa de 6.\n\nPardos Branco e Toninho Branco mantêm-se a 49,90€ a caixa de 12 — preço só para clientes.\n\n2 caixas ou mais: 20% de desconto + 3 garrafas de oferta.\n\nTem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
+  `Daqui dos Pardos, só para não passar em branco — o Verde Tinto e o Touro Lacre Azul (Branco) estão de volta mesmo antes da Páscoa. Estavam esgotados desde Agosto e Outubro respetivamente, ambos estão novamente disponíveis a 49,90€ a caixa de 6.\n\nPardos Branco e Toninho Branco continuam a 49,90€ a caixa de 12 (preço clientes) 🍷\n\n2+ caixas: 20% desconto + 3 garrafas de oferta.\n\nTem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
+];
+
+function pickMsg1(nome) { return MSG1[Math.floor(Math.random()*MSG1.length)](nome); }
+function pickMsg2()     { return MSG2[Math.floor(Math.random()*MSG2.length)]; }
+
+// ── Step 3: Normalize ──────────────────────────────────────────────
+async function startNormalize() {
+  $('card-normalize').classList.remove('hidden');
+  $('norm-label').textContent = '03 — A normalizar...';
+  $('norm-actions').innerHTML = '';
+  $('norm-status').classList.add('hidden');
+  setStep(3);
+  $('card-normalize').scrollIntoView({ behavior:'smooth' });
+
+  const claudeKey = $('claudeKey').value.trim();
+  const tbody = $('norm-tbody');
+  contacts = [];
+
+  // skeleton
+  tbody.innerHTML = rawRows.map(r => `
+    <tr id="nrow-${r.id}">
+      <td class="col-check"></td>
+      <td class="td-n">${r.id}</td>
+      <td colspan="4"><span class="badge b-sending"><span class="badge-dot"></span>a processar</span></td>
+      <td></td>
+    </tr>`).join('');
+
+  let ok = 0, skip = 0;
+
+  for (const row of rawRows) {
+    const phone     = getBestPhone(row);
+    const localName = getNameLocal(row);
+
+    let nome;
+    if (!localName && claudeKey) {
+      try { nome = await inferNameClaude(row, claudeKey); }
+      catch { nome = nameFromEmail(row.email) || 'Cliente'; }
+    } else {
+      nome = localName || 'Cliente';
+    }
+
+    const msg1 = pickMsg1(nome);
+    const msg2 = pickMsg2();
+    const status = phone ? 'pending' : 'skip';
+    contacts.push({ id: row.id, nome, telefone: phone, msg1, msg2, status, selected: !!phone, error: '' });
+    if (phone) ok++; else skip++;
+
+    const tr = $('nrow-' + row.id);
+    if (tr) {
+      const disabled = !phone ? 'disabled' : '';
+      const checked  = phone  ? 'checked'  : '';
+      tr.className   = phone  ? ''         : 'deselected';
+      tr.innerHTML = `
+        <td class="col-check"><input type="checkbox" ${checked} ${disabled} onchange="onRowCheck(${row.id}, this.checked)"></td>
+        <td class="td-n col-id">${row.id}</td>
+        <td class="col-nome"><input type="text" value="${escHtml(nome)}" oninput="onEditNome(${row.id}, this.value)" ${!phone?'disabled':''}></td>
+        <td class="col-tel"><input type="text" value="${escHtml(phone||'')}" oninput="onEditPhone(${row.id}, this.value)" ${!phone?'disabled':''}></td>
+        <td class="col-msg1"><textarea oninput="onEditMsg1(${row.id}, this.value)" ${!phone?'disabled':''}>${escHtml(msg1)}</textarea></td>
+        <td class="col-msg2"><textarea oninput="onEditMsg2(${row.id}, this.value)" ${!phone?'disabled':''}>${escHtml(msg2)}</textarea></td>
+        <td>${phone
+          ? `<span class="badge b-sent"><span class="badge-dot"></span>ok</span>`
+          : `<span class="badge b-skip"><span class="badge-dot"></span>sem nº</span>`
+        }</td>`;
+    }
+  }
+
+  $('norm-label').textContent = '03 — Rever e Selecionar';
+  const st = $('norm-status');
+  st.classList.remove('hidden');
+  st.textContent = `✓ ${ok} contactos prontos${skip > 0 ? ` · ${skip} ignorados (sem número válido)` : ''}. Edita ou desseleciona antes de confirmar.`;
+  $('norm-toolbar').style.display = 'flex';
+  updateSelCount();
+
+  $('norm-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="goToSend()">▶ Confirmar selecionados e enviar</button>
+    <button class="btn btn-ghost" onclick="resetToUpload()">← Trocar ficheiro</button>
+  `;
+}
+
+// ── Edit handlers ──────────────────────────────────────────────────
+function onEditNome(id, v)  { const c = contacts.find(x=>x.id===id); if(c) c.nome     = v; }
+function onEditPhone(id, v) { const c = contacts.find(x=>x.id===id); if(c) c.telefone = v; }
+function onEditMsg1(id, v)  { const c = contacts.find(x=>x.id===id); if(c) c.msg1     = v; }
+function onEditMsg2(id, v)  { const c = contacts.find(x=>x.id===id); if(c) c.msg2     = v; }
+
+function onRowCheck(id, checked) {
+  const c = contacts.find(x=>x.id===id);
+  if (c) c.selected = checked;
+  const tr = $('nrow-'+id);
+  if (tr) tr.className = checked ? '' : 'deselected';
+  updateSelCount();
+  syncHeaderCheckbox();
+}
+
+function toggleAll(checked) {
+  contacts.forEach(c => {
+    if (c.status === 'skip') return;
+    c.selected = checked;
+    const tr = $('nrow-'+c.id);
+    if (tr) {
+      tr.className = checked ? '' : 'deselected';
+      const chk = tr.querySelector('input[type=checkbox]');
+      if (chk) chk.checked = checked;
+    }
+  });
+  updateSelCount();
+}
+
+function selectAll()   { toggleAll(true);  $('chk-all').checked = true; }
+function deselectAll() { toggleAll(false); $('chk-all').checked = false; }
+
+function syncHeaderCheckbox() {
+  const valid = contacts.filter(c=>c.status!=='skip');
+  const sel   = valid.filter(c=>c.selected);
+  const hdr   = $('chk-all');
+  if (hdr) hdr.checked = sel.length === valid.length && valid.length > 0;
+}
+
+function updateSelCount() {
+  const sel = contacts.filter(c=>c.selected).length;
+  const tot = contacts.filter(c=>c.status!=='skip').length;
+  $('sel-count').textContent = `${sel} de ${tot} selecionados`;
+}
+
+// ── Step 4: Send Setup ─────────────────────────────────────────────
+function goToSend() {
+  const sendable = contacts.filter(c => c.selected && c.status === 'pending');
+  if (!sendable.length) { alert('Nenhum contacto selecionado para enviar.'); return; }
+
+  $('card-send').classList.remove('hidden');
+  setStep(4);
+  $('card-send').scrollIntoView({ behavior:'smooth' });
+
+  $('send-tbody').innerHTML = sendable.map(c => `
+    <tr id="srow-${c.id}">
+      <td class="td-n">${c.id}</td>
+      <td><strong>${escHtml(c.nome)}</strong></td>
+      <td class="td-m">${escHtml(c.telefone)}</td>
+      <td><span class="badge b-pending"><span class="badge-dot"></span>pendente</span></td>
+    </tr>`).join('');
+
+  updateStats();
+  $('send-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="startSending()">▶ Enviar ${sendable.length} contactos (2 msgs cada)</button>
+    <button class="btn btn-ghost" onclick="resetToNorm()">← Rever</button>
+  `;
+}
+
+// ── Send Loop ──────────────────────────────────────────────────────
+async function doSend(apiUrl, clientToken, phone, message) {
+  const resp = await fetch(`${apiUrl}/send-text`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'client-token': clientToken },
+    body: JSON.stringify({ phone, message })
+  });
+  const data = await resp.json();
+  if (resp.ok && (data.zaapId || data.messageId || data.id)) return { ok:true };
+  return { ok:false, error: data.message || data.error || JSON.stringify(data) };
+}
+
+let pauseFlag = false;
+let isSending = false;
+
+async function startSending() {
+  if (isSending) return;
+  const apiUrl      = $('apiUrl').value.trim().replace(/\/+$/,'').replace(/\/send-text$/,'');
+  const clientToken = $('clientToken').value.trim();
+  const d1Min = parseInt($('d1Min').value)||25, d1Max = Math.max(parseInt($('d1Max').value)||45, d1Min+1);
+  const d2Min = parseInt($('d2Min').value)||10, d2Max = Math.max(parseInt($('d2Max').value)||18, d2Min+1);
+
+  stopFlag = false; pauseFlag = false; isSending = true;
+  $('send-label').textContent = '04 — A Enviar...';
+  $('prog-status').textContent = '● a enviar...';
+  $('prog-status').style.color = 'var(--green)';
+  renderSendActions('sending');
+
+  const queue = contacts.filter(c => c.selected && (c.status === 'pending' || c.status === 'error'));
+
+  for (let i = 0; i < queue.length; i++) {
+    // wait while paused
+    while (pauseFlag && !stopFlag) await sleep(300);
+    if (stopFlag) break;
+
+    const c = queue[i];
+    c.status = 'sending'; updateSendRow(c); updateStats();
+
+    try {
+      const r1 = await doSend(apiUrl, clientToken, c.telefone, c.msg1);
+      if (!r1.ok) throw new Error(r1.error);
+
+      // interruptible delay between msg1 and msg2
+      const t1 = Date.now(), target1 = rand(d1Min, d1Max);
+      while (Date.now() - t1 < target1) {
+        if (stopFlag) break;
+        if (pauseFlag) { await sleep(200); continue; }
+        await sleep(200);
+      }
+      if (stopFlag) { c.status='pending'; updateSendRow(c); break; }
+
+      const r2 = await doSend(apiUrl, clientToken, c.telefone, c.msg2);
+      if (!r2.ok) throw new Error(r2.error);
+
+      c.status='sent'; c.error='';
+    } catch(err) {
+      c.status='error';
+      c.error = err.message.includes('Failed to fetch') ? 'CORS bloqueado — ativa a extensão' : err.message;
+    }
+
+    updateSendRow(c); updateStats();
+    const row = $('srow-'+c.id);
+    if (row) row.scrollIntoView({ block:'nearest', behavior:'smooth' });
+
+    if (i < queue.length-1 && !stopFlag) {
+      const t2 = Date.now(), target2 = rand(d2Min, d2Max);
+      while (Date.now() - t2 < target2) {
+        if (stopFlag) break;
+        if (pauseFlag) { await sleep(200); continue; }
+        await sleep(200);
+      }
+    }
+  }
+
+  isSending = false;
+  if (stopFlag) {
+    $('send-label').textContent = '04 — Parado';
+    $('prog-status').textContent = '■ parado'; $('prog-status').style.color = 'var(--error)';
+  } else {
+    $('send-label').textContent = '04 — Concluído';
+    $('prog-status').textContent = '✓ concluído'; $('prog-status').style.color = 'var(--green)';
+  }
+  renderSendActions('done');
+}
+
+function pauseSending() {
+  pauseFlag = true;
+  $('prog-status').textContent = '⏸ pausado'; $('prog-status').style.color = 'var(--warn)';
+  $('send-label').textContent = '04 — Pausado';
+  renderSendActions('paused');
+}
+
+function resumeSending() {
+  pauseFlag = false;
+  $('prog-status').textContent = '● a enviar...'; $('prog-status').style.color = 'var(--green)';
+  $('send-label').textContent = '04 — A Enviar...';
+  renderSendActions('sending');
+}
+
+function stopSending() { stopFlag = true; pauseFlag = false; }
+
+function renderSendActions(mode) {
+  const errs = contacts.filter(c=>c.status==='error').length;
+  if (mode === 'sending') {
+    $('send-actions').innerHTML = `
+      <button class="btn btn-pause" onclick="pauseSending()">⏸ Pausar</button>
+      <button class="btn btn-stop"  onclick="stopSending()">■ Parar</button>`;
+  } else if (mode === 'paused') {
+    $('send-actions').innerHTML = `
+      <button class="btn btn-resume" onclick="resumeSending()">▶ Retomar</button>
+      <button class="btn btn-stop"   onclick="stopSending()">■ Parar</button>`;
+  } else {
+    $('send-actions').innerHTML = `
+      ${errs>0?`<button class="btn btn-primary" onclick="retryErrors()">↺ Retentar erros (${errs})</button>`:''}
+      <button class="btn btn-ghost" onclick="resetAll()">Nova campanha</button>`;
+  }
+}
+
+function retryErrors() {
+  contacts.forEach(c=>{ if(c.status==='error') { c.status='pending'; c.selected=true; } });
+  goToSend();
+}
+
+// ── UI Helpers ─────────────────────────────────────────────────────
+function updateSendRow(c) {
+  const row = $('srow-'+c.id); if (!row) return;
+  const map = { pending:'b-pending', sending:'b-sending', sent:'b-sent', error:'b-error' };
+  const lbl = { pending:'○ pendente', sending:'● a enviar', sent:'✓ enviado', error:'✕ erro' };
+  const title = c.error ? ` title="${escHtml(c.error)}"` : '';
+  row.cells[3].innerHTML = `<span class="badge ${map[c.status]}"${title}><span class="badge-dot"></span>${lbl[c.status]}</span>`;
+}
+
+function updateStats() {
+  const all  = contacts.filter(c=>c.status!=='skip');
+  const sent = contacts.filter(c=>c.status==='sent').length;
+  const err  = contacts.filter(c=>c.status==='error').length;
+  const pend = contacts.filter(c=>c.status==='pending').length;
+  const done = sent+err;
+  $('s-total').textContent=all.length; $('s-sent').textContent=sent;
+  $('s-err').textContent=err; $('s-pend').textContent=pend;
+  const pct = all.length>0 ? Math.round((done/all.length)*100) : 0;
+  $('prog-fill').style.width=pct+'%'; $('prog-pct').textContent=pct+'%';
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Resets ─────────────────────────────────────────────────────────
+function resetToUpload() { $('card-normalize').classList.add('hidden'); $('card-send').classList.add('hidden'); rawRows=[]; contacts=[]; $('fileInput').value=''; setStep(2); }
+function resetToNorm()   { $('card-send').classList.add('hidden'); setStep(3); }
+function resetAll()      { ['card-upload','card-normalize','card-send'].forEach(id=>$(id).classList.add('hidden')); rawRows=[]; contacts=[]; $('fileInput').value=''; setStep(1); window.scrollTo({top:0,behavior:'smooth'}); }
+
+// ── File Events ────────────────────────────────────────────────────
+$('fileInput').addEventListener('change', e => { if(e.target.files[0]) parseFile(e.target.files[0]); });
+const dz = $('dropzone');
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', ()  => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); if(e.dataTransfer.files[0]) parseFile(e.dataTransfer.files[0]); });
+</script>
+</body>
+</html>
 
