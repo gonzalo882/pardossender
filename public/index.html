@@ -95,7 +95,24 @@
   .prog-fill { height: 100%; background: linear-gradient(90deg, var(--green-dim), var(--green)); border-radius: 3px; transition: width 0.4s ease; box-shadow: 0 0 8px var(--green); }
   .prog-meta { display: flex; justify-content: space-between; font-family: var(--font-m); font-size: 10px; color: var(--muted); margin-bottom: 16px; }
 
-  .actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; align-items: center; }
+  /* Image upload */
+  .img-upload-area { border: 1.5px dashed var(--border-bright); border-radius: 10px; padding: 22px 20px; display: flex; align-items: center; gap: 16px; background: var(--bg); cursor: pointer; transition: all 0.2s; position: relative; }
+  .img-upload-area:hover { border-color: var(--green-dim); }
+  .img-upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .img-upload-area.has-img { border-color: var(--green-dim); background: rgba(34,197,94,0.04); }
+  .img-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-bright); flex-shrink: 0; }
+  .img-thumb-placeholder { width: 56px; height: 56px; border-radius: 6px; border: 1px dashed var(--border-bright); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .img-info { font-family: var(--font-m); font-size: 11px; color: var(--muted); line-height: 1.8; }
+  .img-info strong { color: var(--text); font-weight: 500; }
+  .img-clear { margin-left: auto; font-family: var(--font-m); font-size: 10px; color: var(--error); cursor: pointer; padding: 4px 8px; border: 1px solid rgba(239,68,68,0.3); border-radius: 4px; background: transparent; flex-shrink: 0; }
+  .img-clear:hover { background: rgba(239,68,68,0.08); }
+    .lang-toggle { display: flex; gap: 0; margin-bottom: 18px; }
+  .lang-toggle input[type=radio] { display: none; }
+  .lang-toggle label { font-family: var(--font-m); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 20px; border: 1px solid var(--border); color: var(--muted); background: var(--surface); cursor: pointer; transition: all 0.15s; }
+  .lang-toggle label:first-of-type { border-radius: 6px 0 0 6px; }
+  .lang-toggle label:last-of-type  { border-radius: 0 6px 6px 0; border-left: none; }
+  .lang-toggle input:checked + label { background: var(--green); color: #000; border-color: var(--green); font-weight: 600; }
+    .actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; align-items: center; }
   .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 8px; font-family: var(--font-d); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; letter-spacing: -0.01em; }
   .btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .btn-primary { background: var(--green); color: #000; }
@@ -192,7 +209,30 @@
       <div class="field"><label>Entre contactos · máx</label><input id="d2Max" type="number" value="18" min="5" max="120"></div>
     </div>
     <div class="field-hint" style="margin-top:8px">↳ delay longo entre as duas msgs simula escrita humana (~100 palavras na msg 2)</div>
-    <div class="actions"><button class="btn btn-primary" onclick="goToUpload()">Continuar →</button></div>
+    <div style="font-family:var(--font-m);font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;margin-top:18px">Msg2 → Imagem (segundos) <span style="color:var(--green);margin-left:6px">opcional</span></div>
+    <div class="fields g4">
+      <div class="field"><label>Msg2→Img · mín</label><input id="d3Min" type="number" value="15" min="5" max="120"></div>
+      <div class="field"><label>Msg2→Img · máx</label><input id="d3Max" type="number" value="30" min="5" max="120"></div>
+    </div>
+    <div style="font-family:var(--font-m);font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;margin-top:20px">Imagem opcional (Msg 3)</div>
+    <div class="img-upload-area" id="imgUploadArea" onclick="document.getElementById('imgFileInput').click()">
+      <input type="file" id="imgFileInput" accept="image/jpeg,image/png,image/webp" onchange="onImgSelected(event)" onclick="event.stopPropagation()">
+      <div class="img-thumb-placeholder" id="imgThumbPlaceholder">🖼️</div>
+      <img class="img-thumb" id="imgThumb" style="display:none" src="" alt="preview">
+      <div class="img-info" id="imgInfo"><strong>Clica para adicionar imagem</strong><br>JPG · PNG · WEBP · máx 5MB<br>Será enviada como 3ª mensagem após a Msg 2</div>
+      <button class="img-clear" id="imgClearBtn" style="display:none" onclick="clearImg(event)">✕ remover</button>
+    </div>
+    <div id="imgCaption" style="display:none;margin-top:10px">
+      <div class="field"><label>Legenda da imagem (opcional)</label><input id="imgCaptionText" type="text" placeholder="ex: Vinhos Pardos 🍷 — disponível agora"></div>
+    </div>
+        <div style="font-family:var(--font-m);font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;margin-top:20px">Idioma das mensagens</div>
+    <div class="lang-toggle">
+      <input type="radio" name="lang" id="lang-pt" value="pt" checked>
+      <label for="lang-pt">🇵🇹 Português</label>
+      <input type="radio" name="lang" id="lang-es" value="es">
+      <label for="lang-es">🇪🇸 Español</label>
+    </div>
+        <div class="actions"><button class="btn btn-primary" onclick="goToUpload()">Continuar →</button></div>
   </div>
 
   <!-- STEP 2 -->
@@ -200,7 +240,7 @@
     <div class="card-label">02 — Ficheiro de Contactos</div>
     <div class="alert alert-info">
       Colunas esperadas: <strong style="color:var(--green)">First Name · Last Name · Email · Default Address Phone · Phone</strong><br>
-      A app normaliza automaticamente nomes (primeiro nome) e números (formato +351...).
+      A app normaliza automaticamente nomes (primeiro nome) e números (PT +351 / ES +34).
     </div>
     <label class="dropzone" id="dropzone">
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
@@ -340,9 +380,13 @@ function normalizePhone(raw) {
   if (!raw) return null;
   let p = String(raw).replace(/[\s\-\(\)\+\.]/g, '');
   if (p.startsWith('00')) p = p.substring(2);
+  // Portugal (+351): 9 dígitos começando em 2, 3 ou 9
   if (p.startsWith('351') && p.length === 12) return '+' + p;
   if (p.length === 9 && /^[239]/.test(p)) return '+351' + p;
   if (p.startsWith('351') && p.length >= 11) return '+' + p.substring(0,12);
+  // Espanha (+34): 9 dígitos começando em 6, 7 (móvel) ou 9 (fixo)
+  if (p.startsWith('34') && p.length === 11 && /^34[679]/.test(p)) return '+' + p;
+  if (p.length === 9 && /^[679]/.test(p)) return '+34' + p;
   return null;
 }
 
@@ -389,23 +433,166 @@ async function inferNameClaude(row, key) {
 }
 
 // ── Messages ───────────────────────────────────────────────────────
-const MSG1 = [
+// ── Templates PT ──────────────────────────────────────────────────
+const MSG1_PT = [
   n => `Olá ${n}! Como está? Daqui, Gonçalo dos vinhos Pardos 🍷. Aproxima-se a Páscoa e lembrei-me de si.`,
   n => `Olá ${n}! Tudo bem? Daqui, Gonçalo dos vinhos Pardos 🍷. A Páscoa está a chegar e lembrei-me de si.`,
   n => `Olá ${n}! Tudo bem? Daqui Gonçalo dos vinhos Pardos🍷. Vem aí a Páscoa e temos novidades.`,
   n => `Olá ${n}! Passou bem? Daqui Gonçalo dos Pardos 🍷. Com a Páscoa à porta, lembrei-me de si. Temos novidades.`,
   n => `Olá ${n}! Como está? É o Gonçalo, dos vinhos Pardos 🍷. Vem aí a Páscoa, temos novidades.`,
 ];
-const MSG2 = [
-  `Apenas para o informar que voltaram dois vinhos que estavam esgotados há meses:\n\n- Pardos Verde Tinto — esgotado desde Agosto → 49,90€ caixa de 6\n- Touro Lacre Azul (Branco) — esgotado desde Outubro → 49,90€ caixa de 6\n\nTodos os restantes vinhos encontram-se temporariamente esgotados.\n\n2 ou mais caixas: 20% de desconto na segunda em diante + 3 garrafas de oferta.\n\nFaz sentido adquirir algum para a Páscoa, antes de esgotar?`,
-  `Lembrei-me de si porque temos novidade mesmo a tempo da Páscoa.\n\nO Pardos Verde Tinto voltou. Estava esgotado desde Agosto. O Touro Lacre Azul (Branco) também — fora desde Outubro. Ambos a 49,90€ a caixa de 6.\n\nTodos os restantes vinhos encontram-se temporariamente esgotados.\n\nA partir da 2ª caixa: 20% desconto + 3 garrafas por nossa conta 🎁\n\nTem interesse em adquirir algum agora para a Páscoa e antes que esgote?`,
-  `Só um aviso rápido — dois vinhos que estavam esgotados há bastante tempo chegaram mesmo a tempo da Páscoa:\n\n→ Pardos Verde Tinto (fora desde Agosto) · 49,90€ · caixa de 6\n→ Touro Lacre Azul Branco (fora desde Outubro) · 49,90€ · caixa de 6\n\nTodos os restantes vinhos encontram-se temporariamente esgotados.\n\n2+ caixas: 20% na segunda em diante + 3 garrafas de oferta.\n\nTem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
-  `Temos dois vinhos de volta que muita gente estava à espera: o Pardos Verde Tinto (esgotado desde Agosto) e o Touro Lacre Azul- Branco (esgotado desde Outubro). Ambos a 49,90€ a caixa de 6.\n\nTodos os restantes vinhos encontram-se temporariamente esgotados.\n\n2 caixas ou mais: 20% de desconto + 3 garrafas de oferta.\n\nTem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
-  `Só para não passar em branco — o Pardos Verde Tinto e o Touro Lacre Azul (Branco) estão de volta mesmo antes da Páscoa. Estavam esgotados desde Agosto e Outubro respetivamente, ambos estão novamente disponíveis a 49,90€ a caixa de 6.\n\nTodos os restantes vinhos encontram-se temporariamente esgotados. 🍷\n\n2 ou mais caixas: 20% de desconto na segunda em diante + 3 garrafas de oferta.\n\nTem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
+const MSG2_PT = [
+  `Apenas para o informar que voltaram dois vinhos que estavam esgotados há meses:
+
+- Pardos Verde Tinto — esgotado desde Agosto → 49,90€ caixa de 6
+- Touro Lacre Azul (Branco) — esgotado desde Outubro → 49,90€ caixa de 6
+
+Todos os restantes vinhos encontram-se temporariamente esgotados.
+
+2 ou mais caixas: 20% de desconto na segunda em diante + 3 garrafas de oferta.
+
+Faz sentido adquirir algum para a Páscoa, antes de esgotar?`,
+  `Lembrei-me de si porque temos novidade mesmo a tempo da Páscoa.
+
+O Pardos Verde Tinto voltou. Estava esgotado desde Agosto. O Touro Lacre Azul (Branco) também — fora desde Outubro. Ambos a 49,90€ a caixa de 6.
+
+Todos os restantes vinhos encontram-se temporariamente esgotados.
+
+A partir da 2ª caixa: 20% desconto + 3 garrafas por nossa conta 🎁
+
+Tem interesse em adquirir algum agora para a Páscoa e antes que esgote?`,
+  `Só um aviso rápido — dois vinhos que estavam esgotados há bastante tempo chegaram mesmo a tempo da Páscoa:
+
+→ Pardos Verde Tinto (fora desde Agosto) · 49,90€ · caixa de 6
+→ Touro Lacre Azul Branco (fora desde Outubro) · 49,90€ · caixa de 6
+
+Todos os restantes vinhos encontram-se temporariamente esgotados.
+
+2+ caixas: 20% na segunda em diante + 3 garrafas de oferta.
+
+Tem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
+  `Temos dois vinhos de volta que muita gente estava à espera: o Pardos Verde Tinto (esgotado desde Agosto) e o Touro Lacre Azul- Branco (esgotado desde Outubro). Ambos a 49,90€ a caixa de 6.
+
+Todos os restantes vinhos encontram-se temporariamente esgotados.
+
+2 caixas ou mais: 20% de desconto + 3 garrafas de oferta.
+
+Tem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
+  `Só para não passar em branco — o Pardos Verde Tinto e o Touro Lacre Azul (Branco) estão de volta mesmo antes da Páscoa. Estavam esgotados desde Agosto e Outubro respetivamente, ambos estão novamente disponíveis a 49,90€ a caixa de 6.
+
+Todos os restantes vinhos encontram-se temporariamente esgotados. 🍷
+
+2 ou mais caixas: 20% de desconto na segunda em diante + 3 garrafas de oferta.
+
+Tem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
 ];
 
-function pickMsg1(nome) { return MSG1[Math.floor(Math.random()*MSG1.length)](nome); }
-function pickMsg2()     { return MSG2[Math.floor(Math.random()*MSG2.length)]; }
+// ── Templates ES ──────────────────────────────────────────────────
+const MSG1_ES = [
+  n => `¡Hola ${n}! ¿Qué tal? Soy Gonçalo, de los vinos Pardos 🍷. Se acerca la Semana Santa y me acordé de ti.`,
+  n => `¡Hola ${n}! ¿Todo bien? Soy Gonçalo, de los vinos Pardos 🍷. La Semana Santa está cerca y me acordé de ti.`,
+  n => `¡Hola ${n}! ¿Qué tal estás? Soy Gonçalo, de los vinos Pardos 🍷. Se acerca la Semana Santa y tenemos novedades.`,
+  n => `¡Hola ${n}! ¿Cómo estás? Soy Gonçalo, de Pardos 🍷. Con la Semana Santa a la vuelta de la esquina, me acordé de ti. Tenemos novedades.`,
+  n => `¡Hola ${n}! ¿Qué tal? Soy Gonçalo, de los vinos Pardos 🍷. Se acerca la Semana Santa y hay novedades.`,
+];
+const MSG2_ES = [
+  `Solo para informarte de que han vuelto dos vinos que llevaban meses agotados:
+
+- Pardos Verde Tinto — agotado desde agosto → 49,90€ caja de 6
+- Touro Lacre Azul (Blanco) — agotado desde octubre → 49,90€ caja de 6
+
+Todos los demás vinos están temporalmente agotados.
+
+2 cajas o más: 20% de descuento a partir de la segunda + 3 botellas de regalo.
+
+¿Tiene sentido pedir alguno para la Semana Santa, antes de que se agote?`,
+  `Me acordé de ti porque tenemos una novedad justo a tiempo para la Semana Santa.
+
+El Pardos Verde Tinto ha vuelto. Estaba agotado desde agosto. El Touro Lacre Azul (Blanco) también — fuera desde octubre. Ambos a 49,90€ la caja de 6.
+
+Todos los demás vinos están temporalmente agotados.
+
+A partir de la 2ª caja: 20% de descuento + 3 botellas de nuestra parte 🎁
+
+¿Te interesa pedir alguno ahora para la Semana Santa, antes de que se agote?`,
+  `Solo un aviso rápido — dos vinos que llevaban bastante tiempo agotados han llegado justo a tiempo para la Semana Santa:
+
+→ Pardos Verde Tinto (fuera desde agosto) · 49,90€ · caja de 6
+→ Touro Lacre Azul Blanco (fuera desde octubre) · 49,90€ · caja de 6
+
+Todos los demás vinos están temporalmente agotados.
+
+2+ cajas: 20% en la segunda en adelante + 3 botellas de regalo.
+
+¿Te interesa alguno para la Semana Santa, antes de que se agote?`,
+  `Tenemos dos vinos de vuelta que mucha gente esperaba: el Pardos Verde Tinto (agotado desde agosto) y el Touro Lacre Azul Blanco (agotado desde octubre). Ambos a 49,90€ la caja de 6.
+
+Todos los demás vinos están temporalmente agotados.
+
+2 cajas o más: 20% de descuento + 3 botellas de regalo.
+
+¿Te interesa pedir alguno para la Semana Santa, antes de que se agote?`,
+  `Solo para no pasar por alto — el Pardos Verde Tinto y el Touro Lacre Azul (Blanco) han vuelto justo antes de la Semana Santa. Estaban agotados desde agosto y octubre respectivamente, y ya están disponibles a 49,90€ la caja de 6.
+
+Todos los demás vinos están temporalmente agotados. 🍷
+
+2 cajas o más: 20% de descuento a partir de la segunda + 3 botellas de regalo.
+
+¿Te interesa pedir alguno para la Semana Santa, antes de que se agote?`,
+];
+
+// ── Image handling ────────────────────────────────────────────────
+let imageData = null; // base64 string with data: prefix
+
+function onImgSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert('Imagem demasiado grande (máx 5MB).'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageData = ev.target.result;
+    const thumb = $('imgThumb');
+    thumb.src = imageData;
+    thumb.style.display = 'block';
+    $('imgThumbPlaceholder').style.display = 'none';
+    $('imgInfo').innerHTML = `<strong>${escHtml(file.name)}</strong><br>${(file.size/1024).toFixed(0)} KB · ${file.type}<br>Será enviada como 3ª mensagem`;
+    $('imgUploadArea').classList.add('has-img');
+    $('imgClearBtn').style.display = 'block';
+    $('imgCaption').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImg(e) {
+  e.stopPropagation();
+  imageData = null;
+  $('imgFileInput').value = '';
+  $('imgThumb').style.display = 'none';
+  $('imgThumb').src = '';
+  $('imgThumbPlaceholder').style.display = 'flex';
+  $('imgInfo').innerHTML = '<strong>Clica para adicionar imagem</strong><br>JPG · PNG · WEBP · máx 5MB<br>Será enviada como 3ª mensagem após a Msg 2';
+  $('imgUploadArea').classList.remove('has-img');
+  $('imgClearBtn').style.display = 'none';
+  $('imgCaption').style.display = 'none';
+  $('imgCaptionText').value = '';
+}
+
+async function doSendImage(apiUrl, clientToken, phone, image, caption) {
+  const body = { phone, image };
+  if (caption) body.caption = caption;
+  const resp = await fetch(`${apiUrl}/send-image`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'client-token': clientToken },
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if (resp.ok && (data.zaapId || data.messageId || data.id)) return { ok:true };
+  return { ok:false, error: data.message || data.error || JSON.stringify(data) };
+}
+
+function getLang()      { return document.querySelector('input[name="lang"]:checked')?.value || 'pt'; }
+function pickMsg1(nome) { const t = getLang()==='es' ? MSG1_ES : MSG1_PT; return t[Math.floor(Math.random()*t.length)](nome); }
+function pickMsg2()     { const t = getLang()==='es' ? MSG2_ES : MSG2_PT; return t[Math.floor(Math.random()*t.length)]; }
 
 // ── Step 3: Normalize ──────────────────────────────────────────────
 async function startNormalize() {
@@ -571,6 +758,9 @@ async function startSending() {
   const clientToken = $('clientToken').value.trim();
   const d1Min = parseInt($('d1Min').value)||25, d1Max = Math.max(parseInt($('d1Max').value)||45, d1Min+1);
   const d2Min = parseInt($('d2Min').value)||10, d2Max = Math.max(parseInt($('d2Max').value)||18, d2Min+1);
+  const d3Min = parseInt($('d3Min').value)||15, d3Max = Math.max(parseInt($('d3Max').value)||30, d3Min+1);
+  const imgToSend  = imageData;
+  const imgCaption = $('imgCaptionText').value.trim();
 
   stopFlag = false; pauseFlag = false; isSending = true;
   $('send-label').textContent = '04 — A Enviar...';
@@ -603,6 +793,20 @@ async function startSending() {
 
       const r2 = await doSend(apiUrl, clientToken, c.telefone, c.msg2);
       if (!r2.ok) throw new Error(r2.error);
+
+      // optional image (msg3)
+      if (imgToSend) {
+        const t3 = Date.now(), target3 = rand(d3Min, d3Max) * 1000;
+        while (Date.now() - t3 < target3) {
+          if (stopFlag) break;
+          if (pauseFlag) { await sleep(200); continue; }
+          await sleep(200);
+        }
+        if (!stopFlag) {
+          const r3 = await doSendImage(apiUrl, clientToken, c.telefone, imgToSend, imgCaption);
+          if (!r3.ok) throw new Error('Imagem: ' + r3.error);
+        }
+      }
 
       c.status='sent'; c.error='';
     } catch(err) {
