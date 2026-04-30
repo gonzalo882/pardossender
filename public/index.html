@@ -796,7 +796,7 @@ async function startSending() {
 
       // optional image (msg3)
       if (imgToSend) {
-        const t3 = Date.now(), target3 = rand(d3Min, d3Max) * 1000;
+        const t3 = Date.now(), target3 = rand(d3Min, d3Max);
         while (Date.now() - t3 < target3) {
           if (stopFlag) break;
           if (pauseFlag) { await sleep(200); continue; }
