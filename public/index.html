@@ -435,56 +435,56 @@ async function inferNameClaude(row, key) {
 // ── Messages ───────────────────────────────────────────────────────
 // ── Templates PT ──────────────────────────────────────────────────
 const MSG1_PT = [
-  n => `Olá ${n}! Como está? Daqui, Gonçalo dos vinhos Pardos 🍷. Aproxima-se a Páscoa e lembrei-me de si.`,
-  n => `Olá ${n}! Tudo bem? Daqui, Gonçalo dos vinhos Pardos 🍷. A Páscoa está a chegar e lembrei-me de si.`,
-  n => `Olá ${n}! Tudo bem? Daqui Gonçalo dos vinhos Pardos🍷. Vem aí a Páscoa e temos novidades.`,
-  n => `Olá ${n}! Passou bem? Daqui Gonçalo dos Pardos 🍷. Com a Páscoa à porta, lembrei-me de si. Temos novidades.`,
-  n => `Olá ${n}! Como está? É o Gonçalo, dos vinhos Pardos 🍷. Vem aí a Páscoa, temos novidades.`,
+  n => `Olá ${n}! É o Gonçalo dos vinhos Pardos 🍷. Queria dar-lhe um aviso antes que esgote — o Touro Lacre Azul está nas últimas 100 caixas.`,
+  n => `Olá ${n}! Gonçalo dos vinhos Pardos 🍷. Não queria que ficasse sem saber — o Touro Lacre Azul entra agora nas últimas 100 caixas.`,
+  n => `Olá ${n}! Como está? Daqui Gonçalo, vinhos Pardos 🍷. O Touro Lacre Azul está quase a esgotar — últimas 100 caixas.`,
+  n => `Olá ${n}! É o Gonçalo dos vinhos Pardos 🍷. Aviso rápido — o Touro Lacre Azul, o nosso Alvarinho, está nas últimas 100 caixas.`,
+  n => `Olá ${n}! Daqui Gonçalo, dos vinhos Pardos 🍷. Antes que esgote — o Touro Lacre Azul está mesmo a acabar, últimas 100 caixas.`,
 ];
 const MSG2_PT = [
-  `Apenas para o informar que voltaram dois vinhos que estavam esgotados há meses:
+  `O Touro Lacre Azul é o nosso melhor vinho — um Alvarinho — e estamos mesmo nas últimas 100 caixas. Depois não há. É a última vez que o consigo arranjar-lhe ao preço especial de cliente: 49,90€ · caixa de 6.
 
-- Pardos Verde Tinto — esgotado desde Agosto → 49,90€ caixa de 6
-- Touro Lacre Azul (Branco) — esgotado desde Outubro → 49,90€ caixa de 6
+Também regressaram em último lote o Pardos Branco e o Toninho Branco — 49,90€ · caixa de 12. Com o verão à porta, é a altura perfeita para uns brancos frescos.
 
-Todos os restantes vinhos encontram-se temporariamente esgotados.
+Se fizer sentido garantir algum, diga-me alguma coisa.
 
-2 ou mais caixas: 20% de desconto na segunda em diante + 3 garrafas de oferta.
+ps: a partir da 2ª caixa — 20% de desconto + 3 garrafas de oferta.`,
+  `O Touro Lacre Azul — o nosso melhor branco, um Alvarinho — está nas últimas 100 caixas. Quando esgotar, não há mais.
 
-Faz sentido adquirir algum para a Páscoa, antes de esgotar?`,
-  `Lembrei-me de si porque temos novidade mesmo a tempo da Páscoa.
+49,90€ · caixa de 6. Última oportunidade ao preço especial de cliente.
 
-O Pardos Verde Tinto voltou. Estava esgotado desde Agosto. O Touro Lacre Azul (Branco) também — fora desde Outubro. Ambos a 49,90€ a caixa de 6.
+Também voltaram em último lote o Pardos Branco e o Toninho Branco — 49,90€ · caixa de 12. Com o calor que aí vem, é a altura certa.
 
-Todos os restantes vinhos encontram-se temporariamente esgotados.
+Se fizer sentido encomendar, diga-me alguma coisa.
 
-A partir da 2ª caixa: 20% desconto + 3 garrafas por nossa conta 🎁
+ps: a partir da 2ª caixa — 20% de desconto + 3 garrafas de oferta.`,
+  `O Touro Lacre Azul é o nosso Alvarinho — o melhor que temos — e estamos nas derradeiras 100 caixas. Está mesmo a terminar.
 
-Tem interesse em adquirir algum agora para a Páscoa e antes que esgote?`,
-  `Só um aviso rápido — dois vinhos que estavam esgotados há bastante tempo chegaram mesmo a tempo da Páscoa:
+49,90€ · caixa de 6 · última oportunidade ao preço especial de cliente.
 
-→ Pardos Verde Tinto (fora desde Agosto) · 49,90€ · caixa de 6
-→ Touro Lacre Azul Branco (fora desde Outubro) · 49,90€ · caixa de 6
+Também de regresso em último lote: Pardos Branco e Toninho Branco — 49,90€ · caixa de 12. Com os dias quentes à porta, é a altura certa.
 
-Todos os restantes vinhos encontram-se temporariamente esgotados.
+É só dizer se fizer sentido encomendar.
 
-2+ caixas: 20% na segunda em diante + 3 garrafas de oferta.
+ps: a partir da 2ª caixa — 20% de desconto + 3 garrafas de oferta.`,
+  `Falamos do Touro Lacre Azul — Alvarinho, o nosso melhor vinho. Estamos nas últimas 100 caixas e não haverá mais stock depois disto.
 
-Tem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
-  `Temos dois vinhos de volta que muita gente estava à espera: o Pardos Verde Tinto (esgotado desde Agosto) e o Touro Lacre Azul- Branco (esgotado desde Outubro). Ambos a 49,90€ a caixa de 6.
+Preço especial de cliente: 49,90€ · caixa de 6.
 
-Todos os restantes vinhos encontram-se temporariamente esgotados.
+Aproveito para avisar que o Pardos Branco e o Toninho Branco também regressaram em último lote — 49,90€ · caixa de 12. Com o verão à porta, os brancos fazem todo o sentido.
 
-2 caixas ou mais: 20% de desconto + 3 garrafas de oferta.
+Quer garantir algum antes de esgotar?
 
-Tem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
-  `Só para não passar em branco — o Pardos Verde Tinto e o Touro Lacre Azul (Branco) estão de volta mesmo antes da Páscoa. Estavam esgotados desde Agosto e Outubro respetivamente, ambos estão novamente disponíveis a 49,90€ a caixa de 6.
+ps: a partir da 2ª caixa — 20% de desconto + 3 garrafas de oferta.`,
+  `O Touro Lacre Azul — o nosso Alvarinho, o favorito de quem nos conhece — está a chegar ao fim. Últimas 100 caixas, sem reposição este ano.
 
-Todos os restantes vinhos encontram-se temporariamente esgotados. 🍷
+49,90€ · caixa de 6 · ao preço especial de cliente, enquanto há.
 
-2 ou mais caixas: 20% de desconto na segunda em diante + 3 garrafas de oferta.
+Também em último lote: Pardos Branco e Toninho Branco — 49,90€ · caixa de 12. Com os dias de calor que aí vêm, é a altura perfeita.
 
-Tem interesse em adquirir algum para a Páscoa, antes de esgotar?`,
+Se fizer sentido encomendar algum, é só avisar 🍷
+
+ps: a partir da 2ª caixa — 20% de desconto + 3 garrafas de oferta.`,
 ];
 
 // ── Templates ES ──────────────────────────────────────────────────
